@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SaaS M&A Tracker</title>
+  <meta name="description" content="SaaS M&A tracker powered by Google Sheets (CSV), 2022–present" />
+
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#0f1620; --text:#e7eef8;
+      --muted:#9fb0c7; --line:#223043; --accent:#7dd3fc;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    header{
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,#0f1620 0%,#0b0f14 100%);
+    }
+    h1{margin:0 0 6px 0;font-size:24px}
+    .sub{margin:0 0 14px 0;color:var(--muted)}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    input,select,button{
+      background:var(--panel);
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:10px;
+      outline:none;
+    }
+    input{flex:1;min-width:240px}
+    button{cursor:pointer}
+    button:hover{border-color:var(--accent)}
+    .meta{margin-top:12px;color:var(--muted);font-size:13px}
+    .dot{margin:0 8px}
+
+    .table-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(255,255,255,0.02);
+    }
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:980px}
+    thead th{
+      position:sticky;top:0;
+      background:rgba(15,22,32,0.98);
+      border-bottom:1px solid var(--line);
+      padding:12px 10px;
+      text-align:left;
+      font-size:13px;
+      color:var(--muted);
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    tbody td{
+      padding:12px 10px;
+      border-bottom:1px solid rgba(34,48,67,0.6);
+      vertical-align:top;
+      font-size:14px;
+    }
+    tbody tr:hover{background:rgba(125,211,252,0.06)}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .badge{
+      display:inline-block;
+      padding:2px 8px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      font-size:12px;
+      color:var(--muted);
+      margin-left:6px;
+    }
+    .tags{color:var(--muted);font-size:12px;margin-top:4px}
+    .error{
+      margin-top:14px;
+      padding:12px;
+      border:1px solid #7f1d1d;
+      background:rgba(127,29,29,0.15);
+      border-radius:12px;
+      color:#fecaca;
+      display:none;
+    }
+    footer{color:var(--muted);font-size:12px;padding:14px 4px}
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="wrap">
+    <h1>SaaS M&A Tracker</h1>
+    <p class="sub">Deals from <strong>2022 → present</strong>. Live data from Google Sheets.</p>
+
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search target, acquirer, sponsor, tags…" />
+      <select id="year"><option value="">All years</option></select>
+      <select id="type">
+        <option value="">All types</option>
+        <option value="Strategic">Strategic</option>
+        <option value="PE">Private Equity</option>
+      </select>
+      <select id="status">
+        <option value="">All statuses</option>
+        <option value="Announced">Announced</option>
+        <option value="Closed">Closed</option>
+        <option value="Terminated">Terminated</option>
+      </select>
+      <button id="reset">Reset</button>
+    </div>
+
+    <div class="meta">
+      <span id="count">0 deals</span>
+      <span class="dot">•</span>
+      <span id="updated">Loading…</span>
+    </div>
+
+    <div id="err" class="error"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-sort="announceDate">Date</th>
+          <th data-sort="target">Target</th>
+          <th data-sort="acquirer">Acquirer</th>
+          <th data-sort="valueUSD">Value</th>
+          <th data-sort="dealType">Type</th>
+          <th data-sort="status">Status</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    Edit deals in Google Sheets → refresh this page.  
+    Use SEC EDGAR “Archives” links when press links expire.
+  </footer>
+</main>
+
+<script>
+/* ===== DATA SOURCE (YOUR VERIFIED CSV) ===== */
+const CSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vSAjnPyDXf1fzbGmPdgs7xKzhU_p3lg_hNJDWJsvBDgNYCjSRV2UFzqwEM7j8CZBQrnoFnJX53XSoWt/pub?output=csv";
+
+/* ===== LOGIC ===== */
+let DEALS=[], sortKey="announceDate", sortDir="desc";
+const $=id=>document.getElementById(id);
+
+function fmtUSD(x){
+  const n=Number(String(x||"").replace(/[^0-9.-]/g,""));
+  if(!n) return "";
+  if(n>=1e9) return `$${(n/1e9).toFixed(1)}B`;
+  if(n>=1e6) return `$${(n/1e6).toFixed(1)}M`;
+  return `$${n.toLocaleString()}`;
+}
+
+function parseCSV(t){
+  let r=[],c="",row=[],q=false;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(q){
+      if(ch=='"'&&t[i+1]=='"'){c+='"';i++}
+      else if(ch=='"') q=false;
+      else c+=ch;
+    } else {
+      if(ch=='"') q=true;
+      else if(ch==','){row.push(c);c=""}
+      else if(ch=='\n'){row.push(c);r.push(row);row=[];c=""}
+      else if(ch!='\r') c+=ch;
+    }
+  }
+  if(c||row.length){row.push(c);r.push(row)}
+  return r.filter(x=>x.some(y=>y.trim()!==""));
+}
+
+function render(list){
+  $("rows").innerHTML=list.map(d=>`
+    <tr>
+      <td>${d.announceDate||""}</td>
+      <td><strong>${d.target||""}</strong><div class="tags">${d.tags.join(" • ")}</div></td>
+      <td>${d.acquirer||""}${d.sponsor?`<span class="badge">${d.sponsor}</span>`:""}</td>
+      <td>${fmtUSD(d.valueUSD)}</td>
+      <td>${d.dealType||""}</td>
+      <td>${d.status||""}</td>
+      <td>
+        ${d.pressLink?`<a href="${d.pressLink}" target="_blank">Press</a>`:""}
+        ${d.secLink?` · <a href="${d.secLink}" target="_blank">SEC</a>`:""}
+      </td>
+    </tr>
+  `).join("");
+  $("count").textContent=`${list.length} deals`;
+}
+
+function apply(){
+  let out=[...DEALS];
+  const q=$("q").value.toLowerCase();
+  if(q) out=out.filter(d=>JSON.stringify(d).toLowerCase().includes(q));
+  ["year","type","status"].forEach(k=>{
+    const v=$(k).value;
+    if(v) out=out.filter(d=>(d[k]||d.announceDate||"").startsWith(v));
+  });
+  out.sort((a,b)=>String(a[sortKey]||"").localeCompare(String(b[sortKey]||"")));
+  if(sortDir==="desc") out.reverse();
+  render(out);
+}
+
+async function load(){
+  const res=await fetch(CSV_URL,{cache:"no-store"});
+  if(!res.ok) throw new Error("CSV not accessible");
+  const csv=await res.text();
+  const m=parseCSV(csv);
+  const h=m[0];
+  DEALS=m.slice(1).map(r=>{
+    const o={};h.forEach((k,i)=>o[k]=r[i]||"");return{
+      announceDate:o.announceDate,
+      target:o.target,
+      acquirer:o.acquirer,
+      sponsor:o.sponsor,
+      valueUSD:o.valueUSD,
+      dealType:o.dealType,
+      status:o.status,
+      tags:(o.tags||"").split(",").map(x=>x.trim()).filter(Boolean),
+      pressLink:o.pressLink,
+      secLink:o.secLink
+    };
+  }).filter(d=>!d.announceDate||d.announceDate>="2022-01-01");
+
+  $("year").innerHTML='<option value="">All years</option>'+[...new Set(DEALS.map(d=>d.announceDate?.slice(0,4)).filter(Boolean))].sort((a,b)=>b-a).map(y=>`<option>${y}</option>`).join("");
+  $("updated").textContent=`Updated ${new Date().toLocaleString()}`;
+  apply();
+}
+
+["q","year","type","status"].forEach(id=>$(id).addEventListener("input",apply));
+$("reset").onclick=()=>{["q","year","type","status"].forEach(id=>$(id).value="");apply();};
+document.querySelectorAll("th[data-sort]").forEach(th=>th.onclick=()=>{sortKey=th.dataset.sort;sortDir=sortDir==="asc"?"desc":"asc";apply();});
+
+load().catch(e=>{$("err").style.display="block";$("err").textContent=e.message;});
+</script>
+</body>
+</html>
