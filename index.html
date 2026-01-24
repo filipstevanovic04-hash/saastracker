@@ -122,6 +122,7 @@
           <th>Target</th>
           <th>Acquirer</th>
           <th>Value</th>
+          <th>Multiple</th>
           <th>Type</th>
           <th>Status</th>
           <th>Links</th>
@@ -133,41 +134,59 @@
 </main>
 
 <script>
-/* ===== YOUR PUBLISHED CSV ===== */
-const CSV_URL =
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vSAjnPyDXf1fzbGmPdgs7xKzhU_p3lg_hNJDWJsvBDgNYCjSRV2UFzqwEM7j8CZBQrnoFnJX53XSoWt/pub?output=csv";
+/* ===== EMBEDDED SAAS M&A DATA ===== */
+const DEALS_DATA = [
+  {date:"2025-03-18",target:"Wiz",acquirer:"Alphabet/Google",valueUSD:32000,multiple:"32.0x ARR",type:"Strategic",status:"Pending",ticker:"GOOGL",pressLink:"https://blog.google/inside-google/company-announcements/google-agreement-acquire-wiz/",notes:"Cloud security platform, $1B ARR"},
+  {date:"2025-03-10",target:"Moveworks",acquirer:"ServiceNow",valueUSD:2850,multiple:"",type:"Strategic",status:"Completed",ticker:"NOW",pressLink:"https://newsroom.servicenow.com/press-releases/details/2025/ServiceNow-to-extend-leading-agentic-AI-to-every-employee-for-every-corner-of-the-business-with-acquisition-of-Moveworks-03-10-2025-traffic/",notes:"AI-powered employee support, $100M+ ARR"},
+  {date:"2025-02-27",target:"HashiCorp",acquirer:"IBM",valueUSD:6400,multiple:"",type:"Strategic",status:"Completed",ticker:"IBM, HCP",pressLink:"https://newsroom.ibm.com/mergers-and-acquisitions",notes:"Infrastructure automation software"},
+  {date:"2025-02-03",target:"Secureworks",acquirer:"Sophos (Thoma Bravo)",valueUSD:859,multiple:"",type:"Strategic",status:"Completed",ticker:"SCWX",pressLink:"https://www.sophos.com/en-us/press/press-releases/2025/02/sophos-completes-secureworks-acquisition",notes:"Cybersecurity"},
+  {date:"2024-12-15",target:"Smartsheet",acquirer:"Blackstone & Vista",valueUSD:8400,multiple:"",type:"Private Equity",status:"Completed",ticker:"SMAR",pressLink:"https://www.smartsheet.com/content-center/news/blackstone-and-vista-equity-partners-complete-acquisition-smartsheet",notes:"Work management platform"},
+  {date:"2024-10-17",target:"Squarespace",acquirer:"Permira",valueUSD:7200,multiple:"",type:"Private Equity",status:"Completed",ticker:"SQSP",pressLink:"https://www.permira.com/news-and-insights/announcements/permira-completes-acquisition-of-squarespace",notes:"Website builder platform"},
+  {date:"2024-09-24",target:"Own (OwnBackup)",acquirer:"Salesforce",valueUSD:1900,multiple:"",type:"Strategic",status:"Completed",ticker:"CRM",pressLink:"",notes:"Data protection for SaaS"},
+  {date:"2024-06-27",target:"Model N",acquirer:"Vista Equity",valueUSD:1250,multiple:"",type:"Private Equity",status:"Completed",ticker:"MODN",pressLink:"",notes:"Revenue management software"},
+  {date:"2024-06-01",target:"WalkMe",acquirer:"SAP",valueUSD:1500,multiple:"",type:"Strategic",status:"Completed",ticker:"SAP, WK",pressLink:"https://news.sap.com/2024/06/sap-enters-agreement-to-acquire-walkme/",notes:"Digital adoption platform"},
+  {date:"2024-05-21",target:"Wonder Dynamics",acquirer:"Autodesk",valueUSD:0,multiple:"",type:"Strategic",status:"Completed",ticker:"ADSK",pressLink:"https://investors.autodesk.com/news-releases/news-release-details/autodesk-acquires-wonder-dynamics-offering-cloud-based-ai",notes:"AI filmmaking tools"},
+  {date:"2024-04-08",target:"Talkwalker",acquirer:"Hootsuite (Canada)",valueUSD:0,multiple:"",type:"Strategic",status:"Completed",ticker:"",pressLink:"https://www.hootsuite.com/newsroom/press-releases/hootsuite-agrees-to-acquire-talkwalker",notes:"Social listening platform"},
+  {date:"2024-03-18",target:"Splunk",acquirer:"Cisco",valueUSD:28000,multiple:"",type:"Strategic",status:"Completed",ticker:"CSCO, SPLK",pressLink:"https://newsroom.cisco.com/c/r/newsroom/en/us/a/y2024/m03/cisco-completes-acquisition-of-splunk.html",notes:"Security and observability"},
+  {date:"2024-02-26",target:"HiredScore",acquirer:"Workday",valueUSD:0,multiple:"",type:"Strategic",status:"Completed",ticker:"WDAY",pressLink:"https://investor.workday.com/2024-02-26-Workday-Announces-Intent-to-Acquire-HiredScore",notes:"AI talent orchestration"},
+  {date:"2024-01-01",target:"EngageSmart",acquirer:"Vista Equity",valueUSD:4000,multiple:"",type:"Private Equity",status:"Completed",ticker:"ESMT",pressLink:"",notes:"Customer engagement software"},
+  {date:"2023-11-22",target:"VMware",acquirer:"Broadcom",valueUSD:61000,multiple:"",type:"Strategic",status:"Completed",ticker:"AVGO, VMW",pressLink:"https://investors.broadcom.com/news-releases/news-release-details/broadcom-completes-acquisition-vmware",notes:"Cloud infrastructure, $69B including debt"},
+  {date:"2023-11-01",target:"LeanIX",acquirer:"SAP",valueUSD:0,multiple:"",type:"Strategic",status:"Completed",ticker:"SAP",pressLink:"https://news.sap.com/2023/11/sap-completes-acquisition-of-leanix/",notes:"Enterprise architecture"},
+  {date:"2023-10-13",target:"Activision Blizzard",acquirer:"Microsoft",valueUSD:68700,multiple:"",type:"Strategic",status:"Completed",ticker:"MSFT, ATVI",pressLink:"https://news.microsoft.com/",notes:"Gaming, $75.4B total cost"},
+  {date:"2023-10-01",target:"Loom",acquirer:"Atlassian",valueUSD:975,multiple:"",type:"Strategic",status:"Completed",ticker:"TEAM",pressLink:"https://www.atlassian.com/blog/announcements/atlassian-acquires-loom",notes:"Video messaging, $880M cash + equity"},
+  {date:"2023-09-29",target:"Accedian (Canada)",acquirer:"Cisco",valueUSD:370,multiple:"",type:"Strategic",status:"Completed",ticker:"CSCO",pressLink:"https://www.cisco.com/c/en/us/about/corporate-strategy-office/acquisitions/accedian.html",notes:"Network performance monitoring"},
+  {date:"2023-09-21",target:"Apptio",acquirer:"IBM",valueUSD:4600,multiple:"",type:"Strategic",status:"Completed",ticker:"IBM",pressLink:"",notes:"FinOps and IT cost optimization"},
+  {date:"2023-04-06",target:"Magnet Forensics (Canada)",acquirer:"Thoma Bravo",valueUSD:1300,multiple:"",type:"Private Equity",status:"Completed",ticker:"MAGT",pressLink:"https://www.thomabravo.com/press-releases/magnet-forensics-announces-closing-of-plan-of-arrangement-with-thoma-bravo",notes:"Digital forensics, C$1.8B"},
+  {date:"2023-01-01",target:"Billtrust",acquirer:"EQT Private Equity",valueUSD:1700,multiple:"",type:"Private Equity",status:"Completed",ticker:"BTRS",pressLink:"https://eqtgroup.com/news/eqt-private-equity-to-acquire-billtrust-2022-09-28",notes:"AR automation"},
+  {date:"2022-11-22",target:"Zendesk",acquirer:"H&F & Permira",valueUSD:10200,multiple:"",type:"Private Equity",status:"Completed",ticker:"ZEN",pressLink:"https://www.zendesk.com/newsroom/press-releases/consortium-led-by-hellman-friedman-and-permira-completes-acquisition-of-zendesk/",notes:"Customer service software"},
+  {date:"2022-11-07",target:"IronSource",acquirer:"Unity Software",valueUSD:4400,multiple:"",type:"Strategic",status:"Completed",ticker:"U",pressLink:"https://investors.unity.com/news/news-details/2022/Unity-Announces-Merger-Agreement-with-ironSource/",notes:"Mobile monetization, all-stock"},
+  {date:"2022-10-12",target:"KnowBe4",acquirer:"Vista Equity",valueUSD:4600,multiple:"",type:"Private Equity",status:"Completed",ticker:"KNBE",pressLink:"https://www.knowbe4.com/press/vista-equity-partners-completes-acquisition-of-knowbe4",notes:"Security awareness training"},
+  {date:"2022-10-01",target:"Avalara",acquirer:"Vista Equity",valueUSD:8400,multiple:"",type:"Private Equity",status:"Completed",ticker:"AVLR",pressLink:"https://newsroom.avalara.com/2022-10-19-Vista-Equity-Partners-Completes-Acquisition-of-Avalara",notes:"Tax compliance automation"},
+  {date:"2022-09-30",target:"Citrix Systems",acquirer:"Vista & Evergreen",valueUSD:16500,multiple:"",type:"Private Equity",status:"Completed",ticker:"CTXS",pressLink:"https://www.cloud.com/news/press-release/2022/vista-equity-partners-and-evergreen-coast-capital-complete-transaction-to-acquire-citrix-and-combine-with-tibco",notes:"Merged with TIBCO"},
+  {date:"2022-08-23",target:"ForgeRock",acquirer:"Thoma Bravo",valueUSD:2300,multiple:"",type:"Private Equity",status:"Completed",ticker:"FORG",pressLink:"https://www.thomabravo.com/press-releases/thoma-bravo-completes-acquisition-of-forgerock-combines-forgerock-into-ping-identity",notes:"Identity management, merged with Ping"},
+  {date:"2022-08-01",target:"Barracuda Networks",acquirer:"KKR",valueUSD:4000,multiple:"",type:"Private Equity",status:"Completed",ticker:"",pressLink:"https://www.barracuda.com/company/news/2022/857",notes:"Security, secondary buyout from Thoma Bravo"},
+  {date:"2022-06-08",target:"Cerner",acquirer:"Oracle",valueUSD:28300,multiple:"",type:"Strategic",status:"Completed",ticker:"ORCL",pressLink:"https://www.oracle.com/news/announcement/oracle-completes-acquisition-of-cerner-2022-06-07/",notes:"Healthcare IT"},
+  {date:"2022-06-01",target:"Anaplan",acquirer:"Thoma Bravo",valueUSD:10400,multiple:"",type:"Private Equity",status:"Completed",ticker:"PLAN",pressLink:"https://www.thomabravo.com/press-releases/thoma-bravo-completes-acquisition-of-anaplan",notes:"Planning software, reduced from $10.7B"},
+  {date:"2022-06-01",target:"SailPoint",acquirer:"Thoma Bravo",valueUSD:6900,multiple:"",type:"Private Equity",status:"Completed",ticker:"SAIL",pressLink:"https://www.thomabravo.com/press-releases/thoma-bravo-to-acquire-sailpoint",notes:"Identity governance"},
+  {date:"2022-03-01",target:"Nuance Communications",acquirer:"Microsoft",valueUSD:19700,multiple:"",type:"Strategic",status:"Completed",ticker:"MSFT",pressLink:"https://news.microsoft.com/source/2021/04/12/microsoft-accelerates-industry-cloud-strategy-for-healthcare-with-the-acquisition-of-nuance/",notes:"Healthcare AI, including debt"},
+  {date:"2022-03-01",target:"McAfee",acquirer:"Advent & Consortium",valueUSD:14000,multiple:"",type:"Private Equity",status:"Completed",ticker:"MCFE",pressLink:"https://www.permira.com/news-and-insights/announcements/mcafee-to-be-acquired-by-an-investor-group-for-over-14-billion",notes:"Cybersecurity, $12B equity value"},
+  {date:"2024-11-01",target:"Nuvei (Canada)",acquirer:"PE Consortium",valueUSD:6300,multiple:"",type:"Private Equity",status:"Completed",ticker:"NVEI",pressLink:"",notes:"Payment processing"},
+  {date:"2022-05-01",target:"Datadog Acquires CoScreen",acquirer:"Datadog",valueUSD:0,multiple:"",type:"Strategic",status:"Completed",ticker:"DDOG",pressLink:"https://www.datadoghq.com/blog/datadog-acquires-coscreen/",notes:"Screen sharing collaboration"},
+  {date:"2022-05-01",target:"Hdiv Security",acquirer:"Datadog",valueUSD:0,multiple:"",type:"Strategic",status:"Completed",ticker:"DDOG",pressLink:"https://www.prnewswire.com/news-releases/datadog-signs-definitive-agreement-to-acquire-hdiv-security-301540303.html",notes:"Application security"},
+  {date:"2022-01-01",target:"Percept.AI",acquirer:"Atlassian",valueUSD:0,multiple:"",type:"Strategic",status:"Completed",ticker:"TEAM",pressLink:"https://www.atlassian.com/blog/announcements/atlassian-acquires-percept",notes:"AI-powered insights"}
+];
 
 let DEALS = [];
 let sortColumn = null;
 let sortAsc = true;
 const $ = id => document.getElementById(id);
 
-function fmtUSD(x){
-  const n = Number(String(x||"").replace(/[^0-9.-]/g,""));
-  if(!n) return "";
-  if(n>=1e9) return `$${(n/1e9).toFixed(1)}B`;
-  if(n>=1e6) return `$${(n/1e6).toFixed(1)}M`;
-  return `$${n.toLocaleString()}`;
-}
-
-function parseCSV(text){
-  const rows=[], row=[], out=[];
-  let cur="", inQ=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(inQ){
-      if(c=='"' && text[i+1]=='"'){cur+='"';i++}
-      else if(c=='"'){inQ=false}
-      else cur+=c;
-    } else {
-      if(c=='"') inQ=true;
-      else if(c==','){row.push(cur);cur=""}
-      else if(c=='\n'){row.push(cur);rows.push(row.splice(0));cur=""}
-      else if(c!='\r') cur+=c;
-    }
-  }
-  if(cur||row.length){row.push(cur);rows.push(row)}
-  return rows.filter(r=>r.some(x=>x.trim()!==""));
+function fmtUSD(valueInMillions){
+  if(!valueInMillions || valueInMillions === 0) return "—";
+  const millions = Number(valueInMillions);
+  if(!millions) return "—";
+  if(millions >= 1000) return `US$${(millions/1000).toFixed(2)}B`;
+  return `US$${millions.toFixed(0)}M`;
 }
 
 function isValidURL(str){
@@ -190,11 +209,11 @@ function filterDeals(){
     const searchMatch = !query ||
       d.target.toLowerCase().includes(query) ||
       d.acquirer.toLowerCase().includes(query) ||
-      d.tags.join(" ").toLowerCase().includes(query) ||
+      d.ticker.toLowerCase().includes(query) ||
       (d.notes||"").toLowerCase().includes(query);
 
-    const yearMatch = !year || d.announceDate.startsWith(year);
-    const typeMatch = !type || d.dealType === type;
+    const yearMatch = !year || d.date.startsWith(year);
+    const typeMatch = !type || d.type === type;
     const statusMatch = !status || d.status === status;
 
     return searchMatch && yearMatch && typeMatch && statusMatch;
@@ -204,15 +223,13 @@ function filterDeals(){
     filtered.sort((a,b) => {
       let valA, valB;
       switch(sortColumn){
-        case 0: valA = a.announceDate; valB = b.announceDate; break;
+        case 0: valA = a.date; valB = b.date; break;
         case 1: valA = a.target.toLowerCase(); valB = b.target.toLowerCase(); break;
         case 2: valA = a.acquirer.toLowerCase(); valB = b.acquirer.toLowerCase(); break;
-        case 3:
-          valA = Number(String(a.valueUSD||"0").replace(/[^0-9.-]/g,"")) || 0;
-          valB = Number(String(b.valueUSD||"0").replace(/[^0-9.-]/g,"")) || 0;
-          break;
-        case 4: valA = a.dealType; valB = b.dealType; break;
-        case 5: valA = a.status; valB = b.status; break;
+        case 3: valA = a.valueUSD || 0; valB = b.valueUSD || 0; break;
+        case 4: valA = a.multiple || ""; valB = b.multiple || ""; break;
+        case 5: valA = a.type; valB = b.type; break;
+        case 6: valA = a.status; valB = b.status; break;
         default: return 0;
       }
       if(valA < valB) return sortAsc ? -1 : 1;
@@ -227,18 +244,18 @@ function filterDeals(){
 function render(list){
   $("rows").innerHTML = list.map(d=>`
     <tr>
-      <td>${d.announceDate}</td>
+      <td>${d.date}</td>
       <td>
         <strong>${d.target}</strong>
-        ${d.tags.length?`<div class="tags">${d.tags.join(" • ")}</div>`:""}
+        ${d.ticker?`<div class="tags">${d.ticker}</div>`:""}
       </td>
-      <td>${d.acquirer}${d.dealType?`<span class="badge">${d.dealType}</span>`:""}</td>
+      <td>${d.acquirer}</td>
       <td>${fmtUSD(d.valueUSD)}</td>
-      <td>${d.dealType}</td>
+      <td>${d.multiple || "—"}</td>
+      <td><span class="badge">${d.type}</span></td>
       <td>${d.status}</td>
       <td>
-        ${isValidURL(d.pressLink)?`<a href="${d.pressLink}" target="_blank" rel="noopener">Press</a>`:""}
-        ${isValidURL(d.secLink)?` · <a href="${d.secLink}" target="_blank" rel="noopener">SEC</a>`:""}
+        ${isValidURL(d.pressLink)?`<a href="${d.pressLink}" target="_blank" rel="noopener">Press</a>`:"—"}
       </td>
     </tr>
   `).join("");
@@ -246,8 +263,8 @@ function render(list){
 }
 
 function populateFilters(){
-  const years = [...new Set(DEALS.map(d => d.announceDate.substring(0,4)))].sort().reverse();
-  const types = [...new Set(DEALS.map(d => d.dealType).filter(Boolean))].sort();
+  const years = [...new Set(DEALS.map(d => d.date.substring(0,4)))].sort().reverse();
+  const types = [...new Set(DEALS.map(d => d.type).filter(Boolean))].sort();
   const statuses = [...new Set(DEALS.map(d => d.status).filter(Boolean))].sort();
 
   $("year").innerHTML = '<option value="">All years</option>' +
@@ -260,35 +277,24 @@ function populateFilters(){
     statuses.map(s => `<option value="${s}">${s}</option>`).join("");
 }
 
-async function load(){
-  const res = await fetch(CSV_URL,{cache:"no-store"});
-  const csv = await res.text();
-  const m = parseCSV(csv);
-  const h = m[0];
-  const rows = m.slice(1);
-
-  const objects = rows.map(r=>{
-    const o={}; h.forEach((k,i)=>o[k]=r[i]||""); return o;
-  });
-
-  DEALS = objects.map(r=>({
-    announceDate: r.Date || "",
-    target: r.Target || "",
-    acquirer: r.Acquirer || "",
-    valueUSD: r.Deal_Value || "",
-    dealType: r.Acquirer_Type || "",
-    status: r.Status || "",
-    tags: (r.Ticker||"").split(",").map(x=>x.trim()).filter(Boolean),
-    pressLink: r.Press_Release || "",
-    secLink: r.Proxy || r.Other_Link || "",
-    notes: r.Description || ""
-  })).filter(d=>d.announceDate && d.announceDate>="2022-01-01");
+function init(){
+  DEALS = DEALS_DATA.map(d => ({
+    date: d.date,
+    target: d.target,
+    acquirer: d.acquirer,
+    valueUSD: d.valueUSD,
+    multiple: d.multiple,
+    type: d.type,
+    status: d.status,
+    ticker: d.ticker,
+    pressLink: d.pressLink,
+    notes: d.notes
+  }));
 
   populateFilters();
-  $("updated").textContent = `Updated ${new Date().toLocaleString()}`;
+  $("updated").textContent = `Last updated ${new Date().toLocaleDateString()}`;
   render(DEALS);
 
-  // Add event listeners
   $("q").addEventListener("input", filterDeals);
   $("year").addEventListener("change", filterDeals);
   $("type").addEventListener("change", filterDeals);
@@ -303,9 +309,8 @@ async function load(){
     filterDeals();
   });
 
-  // Add sorting to table headers
   document.querySelectorAll("th").forEach((th, idx) => {
-    if(idx < 6) {
+    if(idx < 7) {
       th.addEventListener("click", () => {
         if(sortColumn === idx){
           sortAsc = !sortAsc;
@@ -319,11 +324,7 @@ async function load(){
   });
 }
 
-load().catch(e=>{
-  $("err").style.display="block";
-  $("err").textContent = `Error: ${e.message}`;
-  console.error(e);
-});
+init();
 </script>
 </body>
 </html>
