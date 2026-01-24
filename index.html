@@ -138,6 +138,8 @@ const CSV_URL =
 "https://docs.google.com/spreadsheets/d/e/2PACX-1vSAjnPyDXf1fzbGmPdgs7xKzhU_p3lg_hNJDWJsvBDgNYCjSRV2UFzqwEM7j8CZBQrnoFnJX53XSoWt/pub?output=csv";
 
 let DEALS = [];
+let sortColumn = null;
+let sortAsc = true;
 const $ = id => document.getElementById(id);
 
 function fmtUSD(x){
@@ -168,25 +170,94 @@ function parseCSV(text){
   return rows.filter(r=>r.some(x=>x.trim()!==""));
 }
 
+function isValidURL(str){
+  if(!str || str.trim()==="") return false;
+  try {
+    const url = new URL(str);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function filterDeals(){
+  const query = $("q").value.toLowerCase();
+  const year = $("year").value;
+  const type = $("type").value;
+  const status = $("status").value;
+
+  let filtered = DEALS.filter(d => {
+    const searchMatch = !query ||
+      d.target.toLowerCase().includes(query) ||
+      d.acquirer.toLowerCase().includes(query) ||
+      d.tags.join(" ").toLowerCase().includes(query) ||
+      (d.notes||"").toLowerCase().includes(query);
+
+    const yearMatch = !year || d.announceDate.startsWith(year);
+    const typeMatch = !type || d.dealType === type;
+    const statusMatch = !status || d.status === status;
+
+    return searchMatch && yearMatch && typeMatch && statusMatch;
+  });
+
+  if(sortColumn !== null){
+    filtered.sort((a,b) => {
+      let valA, valB;
+      switch(sortColumn){
+        case 0: valA = a.announceDate; valB = b.announceDate; break;
+        case 1: valA = a.target.toLowerCase(); valB = b.target.toLowerCase(); break;
+        case 2: valA = a.acquirer.toLowerCase(); valB = b.acquirer.toLowerCase(); break;
+        case 3:
+          valA = Number(String(a.valueUSD||"0").replace(/[^0-9.-]/g,"")) || 0;
+          valB = Number(String(b.valueUSD||"0").replace(/[^0-9.-]/g,"")) || 0;
+          break;
+        case 4: valA = a.dealType; valB = b.dealType; break;
+        case 5: valA = a.status; valB = b.status; break;
+        default: return 0;
+      }
+      if(valA < valB) return sortAsc ? -1 : 1;
+      if(valA > valB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  render(filtered);
+}
+
 function render(list){
   $("rows").innerHTML = list.map(d=>`
     <tr>
       <td>${d.announceDate}</td>
       <td>
         <strong>${d.target}</strong>
-        <div class="tags">${d.tags.join(" • ")}</div>
+        ${d.tags.length?`<div class="tags">${d.tags.join(" • ")}</div>`:""}
       </td>
-      <td>${d.acquirer}<span class="badge">${d.dealType}</span></td>
+      <td>${d.acquirer}${d.dealType?`<span class="badge">${d.dealType}</span>`:""}</td>
       <td>${fmtUSD(d.valueUSD)}</td>
       <td>${d.dealType}</td>
       <td>${d.status}</td>
       <td>
-        ${d.pressLink?`<a href="${d.pressLink}" target="_blank">Press</a>`:""}
-        ${d.secLink?` · <a href="${d.secLink}" target="_blank">SEC</a>`:""}
+        ${isValidURL(d.pressLink)?`<a href="${d.pressLink}" target="_blank" rel="noopener">Press</a>`:""}
+        ${isValidURL(d.secLink)?` · <a href="${d.secLink}" target="_blank" rel="noopener">SEC</a>`:""}
       </td>
     </tr>
   `).join("");
-  $("count").textContent = `${list.length} deals`;
+  $("count").textContent = `${list.length} deal${list.length===1?"":"s"}`;
+}
+
+function populateFilters(){
+  const years = [...new Set(DEALS.map(d => d.announceDate.substring(0,4)))].sort().reverse();
+  const types = [...new Set(DEALS.map(d => d.dealType).filter(Boolean))].sort();
+  const statuses = [...new Set(DEALS.map(d => d.status).filter(Boolean))].sort();
+
+  $("year").innerHTML = '<option value="">All years</option>' +
+    years.map(y => `<option value="${y}">${y}</option>`).join("");
+
+  $("type").innerHTML = '<option value="">All types</option>' +
+    types.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  $("status").innerHTML = '<option value="">All statuses</option>' +
+    statuses.map(s => `<option value="${s}">${s}</option>`).join("");
 }
 
 async function load(){
@@ -201,25 +272,57 @@ async function load(){
   });
 
   DEALS = objects.map(r=>({
-    announceDate: r.Date,
-    target: r.Target,
-    acquirer: r.Acquirer,
-    valueUSD: r.Deal_Value,
-    dealType: r.Acquirer_Type,
-    status: r.Status,
+    announceDate: r.Date || "",
+    target: r.Target || "",
+    acquirer: r.Acquirer || "",
+    valueUSD: r.Deal_Value || "",
+    dealType: r.Acquirer_Type || "",
+    status: r.Status || "",
     tags: (r.Ticker||"").split(",").map(x=>x.trim()).filter(Boolean),
-    pressLink: r.Press_Release,
-    secLink: r.Proxy || r.Other_Link,
-    notes: r.Description
-  })).filter(d=>!d.announceDate || d.announceDate>="2022-01-01");
+    pressLink: r.Press_Release || "",
+    secLink: r.Proxy || r.Other_Link || "",
+    notes: r.Description || ""
+  })).filter(d=>d.announceDate && d.announceDate>="2022-01-01");
 
+  populateFilters();
   $("updated").textContent = `Updated ${new Date().toLocaleString()}`;
   render(DEALS);
+
+  // Add event listeners
+  $("q").addEventListener("input", filterDeals);
+  $("year").addEventListener("change", filterDeals);
+  $("type").addEventListener("change", filterDeals);
+  $("status").addEventListener("change", filterDeals);
+
+  $("reset").addEventListener("click", () => {
+    $("q").value = "";
+    $("year").value = "";
+    $("type").value = "";
+    $("status").value = "";
+    sortColumn = null;
+    filterDeals();
+  });
+
+  // Add sorting to table headers
+  document.querySelectorAll("th").forEach((th, idx) => {
+    if(idx < 6) {
+      th.addEventListener("click", () => {
+        if(sortColumn === idx){
+          sortAsc = !sortAsc;
+        } else {
+          sortColumn = idx;
+          sortAsc = true;
+        }
+        filterDeals();
+      });
+    }
+  });
 }
 
 load().catch(e=>{
   $("err").style.display="block";
-  $("err").textContent = e.message;
+  $("err").textContent = `Error: ${e.message}`;
+  console.error(e);
 });
 </script>
 </body>
